@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agnes 创意空间</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --panel-2: #232736;
+    --border: #2e3345;
+    --text: #e6e8ef;
+    --muted: #9aa0b4;
+    --accent: #6c8cff;
+    --accent-2: #8f6cff;
+    --ok: #3ecf8e;
+    --err: #ff6b6b;
+    --warn: #ffb454;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: rgba(15,17,23,.85); backdrop-filter: blur(8px); z-index: 10;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .key-row { display: flex; gap: 8px; align-items: center; }
+  .key-row input {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 10px; border-radius: 8px; width: 240px; font-size: 13px;
+  }
+  .key-row button {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .key-row button:hover { color: var(--text); }
+  .key-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .key-dot.on { background: var(--ok); }
+
+  main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .col { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab {
+    flex: 1; min-width: 80px; text-align: center; padding: 9px 6px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    color: var(--muted); background: var(--panel-2); user-select: none;
+  }
+  .tab.active { color: var(--text); border-color: var(--accent); background: rgba(108,140,255,.12); }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; }
+  select, textarea, input[type=text] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .chip {
+    display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); margin: 2px;
+  }
+
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #fff;
+    font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 14px;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.stop {
+    background: var(--err); width: auto; padding: 8px 16px; margin-top: 0;
+  }
+
+  .drop {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center;
+    color: var(--muted); font-size: 12px; cursor: pointer; transition: .15s;
+  }
+  .drop:hover, .drop.drag { border-color: var(--accent); color: var(--text); }
+  .thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .thumb { position: relative; width: 70px; height: 70px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button {
+    position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border: none;
+    background: rgba(0,0,0,.65); color: #fff; border-radius: 50%; cursor: pointer; font-size: 11px; line-height: 1;
+  }
+
+  .result-area { min-height: 300px; }
+  .result-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+  .result-item {
+    width: 260px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .result-item .media { width: 100%; aspect-ratio: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; }
+  .result-item .media img, .result-item .media video { width: 100%; height: 100%; object-fit: contain; }
+  .result-item .meta { padding: 8px 10px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .result-item .meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .result-item .meta a:hover { text-decoration: underline; }
+
+  .status {
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+    min-height: 20px;
+  }
+  .status.running { color: var(--warn); border-color: var(--warn); }
+  .status.ok { color: var(--ok); border-color: var(--ok); }
+  .status.err { color: var(--err); border-color: var(--err); }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .retry-badge { font-size: 11px; color: var(--warn); margin-left: 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 20px; font-size: 14px; }
+
+  .hidden { display: none !important; }
+  .check-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; }
+  .check-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .keyframe-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  details { margin-top: 12px; }
+  details summary { cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
+  details[open] summary { color: var(--accent); }
+  .adv { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agnes <span>创意空间</span></h1>
+  <div class="key-row">
+    <div class="key-dot" id="keyDot" title="API Key 状态"></div>
+    <input type="password" id="apiKey" placeholder="Agnes API Key" autocomplete="off" />
+    <button id="keyToggle">隐藏</button>
+  </div>
+</header>
+
+<main>
+  <!-- 左侧控制栏 -->
+  <div class="col">
+    <div class="card">
+      <h2>生成模式</h2>
+      <div class="tabs" id="modeTabs">
+        <div class="tab active" data-mode="t2i">文生图</div>
+        <div class="tab" data-mode="i2i">图生图</div>
+        <div class="tab" data-mode="t2v">文生视频</div>
+        <div class="tab" data-mode="i2v">图生视频</div>
+      </div>
+
+      <!-- 模型 / 参数 -->
+      <div id="paramBlock"></div>
+    </div>
+
+    <div class="card">
+      <h2>提示词</h2>
+      <label for="prompt">描述你想生成的内容</label>
+      <textarea id="prompt" placeholder="例如：一只可爱的小猫坐在窗台上，午后阳光，治愈系插画风格"></textarea>
+
+      <div class="check-row">
+        <input type="checkbox" id="useOptimize" />
+        <label for="useOptimize" style="margin:0">✨ 优化提示词（调用文本模型扩写）</label>
+      </div>
+
+      <button class="btn" id="genBtn">生成</button>
+      <div id="stopWrap" class="hidden" style="margin-top:10px">
+        <button class="btn stop" id="stopBtn">■ 停止 / 取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧结果区 -->
+  <div class="col">
+    <div class="card result-area">
+      <h2>生成结果</h2>
+      <div class="status" id="status"><span>就绪</span></div>
+      <div class="result-grid" id="resultGrid">
+        <div class="empty" style="width:100%">生成结果会显示在这里</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden />
+
+<script>
+/* ============================ 常量 ============================ */
+const BASE = "https://apihub.agnes-ai.com/v1";
+const AGNES_API = "https://apihub.agnes-ai.com";
+const LLM_MODEL = "agnes-3.0-flash"; // 提示词优化用的文本模型
+const POLL_INTERVAL_MS = 1500;     // 视频任务轮询间隔（查询不消耗 RPM，仅创建任务消耗）
+
+const IMG_MODELS = [
+  { id: "agnes-image-2.5-flash", label: "Image 2.5 Flash（最新）" },
+  { id: "agnes-image-2.1-flash", label: "Image 2.1 Flash" },
+  { id: "agnes-image-2.0-flash", label: "Image 2.0 Flash" },
+];
+const VIDEO_MODELS = [
+  { id: "agnes-video-2.5-flash", label: "Video 2.5 Flash（720P）" },
+  { id: "agnes-video-2.5", label: "Video 2.5" },
+];
+
+// 各模式的可选宽高比
+const RATIO_T2I = ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9"];
+const SIZE_T2I = ["1K", "2K", "3K", "4K"];
+const RATIO_VIDEO = ["16:9", "9:16", "1:1", "4:3", "21:9"];
+const SECONDS_OPTIONS = ["4", "5", "6", "8", "10", "12"];
+
+/* ============================ 状态 ============================ */
+const S = {
+  mode: "t2i",
+  imgModel: IMG_MODELS[0].id,
+  vidModel: VIDEO_MODELS[0].id,
+  ratio: "1:1",
+  size: "2K",
+  seconds: "5",
+  refImages: [],       // 图生图：已上传的本地 File（base64）
+  refImagesVid: [],    // 图生视频（reference 模式）
+  firstFrame: null,   // 图生视频（keyframe）
+  lastFrame: null,
+  cancelled: false,
+  running: false,
+  retryCount: 0,
+};
+
+/* ============================ 工具 ============================ */
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...rest) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  // 第三个参数：字符串/数字 → textContent；数组 → 逐个 appendChild（节点或字符串都行）
+  const last = rest.length ? rest[rest.length - 1] : undefined;
+  if (Array.isArray(last)) {
+    for (const child of last) {
+      n.appendChild(typeof child === "string" || typeof child === "number" ? document.createTextNode(String(child)) : child);
+    }
+  } else if (last !== undefined) {
+    n.textContent = String(last);
+  }
+  return n;
+};
+
+function getKey() {
+  const k = $("apiKey").value.trim() || localStorage.getItem("agnes_api_key") || "";
+  if (k) localStorage.setItem("agnes_api_key", k);
+  $("keyDot").classList.toggle("on", !!k);
+  return k;
+}
+
+function fileToB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function setStatus(msg, cls = "") {
+  const s = $("status");
+  s.className = "status " + cls;
+  s.innerHTML = (cls === "running" ? '<span class="spinner"></span>' : "") +
+    (typeof msg === "string" ? msg : msg.outerHTML);
+}
+
+function clearResults() {
+  const g = $("resultGrid");
+  g.innerHTML = "";
+}
+
+function addResultItem(media, title, sub, url) {
+  const g = $("resultGrid");
+  const empty = g.querySelector(".empty");
+  if (empty) empty.remove();
+  const item = el("div", { class: "result-item" });
+  const m = el("div", { class: "media" });
+  if (media === "image") m.appendChild(el("img", { src: url, alt: title }));
+  else m.appendChild(el("video", { src: url, controls: "controls", loop: "loop" }));
+  const meta = el("div", { class: "meta" });
+  meta.appendChild(el("span", {}, title));
+  if (url) meta.appendChild(Object.assign(el("a", {}, "下载"), { href: url, target: "_blank", download: "" }));
+  if (sub) {
+    meta.appendChild(el("span", { class: "sub", style: "color:var(--muted)" }, sub));
+  }
+  item.append(m, meta);
+  g.prepend(item);
+}
+
+async function apiFetch(path, body, isVideoQuery = false) {
+  const key = getKey();
+  if (!key) throw new Error("请先填写 Agnes API Key（右上角）");
+  const url = isVideoQuery ? (AGNES_API + path) : (BASE + path);
+  const opts = {
+    method: body ? "POST" : "GET",
+    headers: { "Authorization": "Bearer " + key },
+  };
+  if (body) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!r.ok) {
+    const msg = data?.error?.message || data?.message || data?.raw || ("HTTP " + r.status);
+    const e = new Error(msg);
+    e.status = r.status;
+    e.data = data;
+    throw e;
+  }
+  return data;
+}
+
+/* ============================ 提示词优化 ============================ */
+async function optimizePrompt(p) {
+  try {
+    const r = await apiFetch("/chat/completions", {
+      model: LLM_MODEL,
+      messages: [
+        { role: "system", content: "你是专业的图像/视频提示词工程师。把用户给的简短描述扩写成一段信息密度高、包含主体/动作/场景/镜头运动/光照/风格/画幅的提示词。只输出最终提示词，不要解释，保留中文。" },
+        { role: "user", content: p },
+      ],
+      max_tokens: 300,
+    });
+    const out = r?.choices?.[0]?.message?.content?.trim();
+    return out && out.length > p.length ? out : p;
+  } catch {
+    return p; // 优化失败就用原文，不阻断
+  }
+}
+
+/* ============================ 图像 ============================ */
+function buildImageBody(mode, prompt, ratio, size, refImages) {
+  const body = {
+    model: S.imgModel,
+    prompt,
+    ratio,
+    size,
+  };
+  if (mode === "i2i" && refImages.length > 0) {
+    body.extra_body = { image: refImages }; // 参考图走 extra_body.image（数组）
+  }
+  return body;
+}
+
+async function generateImage({ mode, prompt, ratio, size, refImages }) {
+  const body = buildImageBody(mode, prompt, ratio, size, refImages);
+  const data = await apiFetch("/images/generations", body);
+  const item = data?.data?.[0];
+  if (!item) throw new Error("图像响应缺少 data[0]");
+  const url = item.url || (item.b64_json ? "data:image/png;base64," + item.b64_json : null);
+  if (!url) throw new Error("图像响应缺少 url / b64_json");
+  addResultItem("image", S.imgModel, "ratio " + ratio + " · " + size, url);
+  if (item.revised_prompt) console.log("revised_prompt:", item.revised_prompt);
+  return url;
+}
+
+/* ============================ 视频 ============================ */
+function buildVideoBody(prompt, ratio, seconds, mode, opts = {}) {
+  const body = {
+    model: S.vidModel,
+    prompt,
+    mode,               // "text" | "keyframe" | "reference"
+    seconds: String(seconds),
+    aspect_ratio: ratio,
+  };
+  // Flash 固定 720P
+  if (S.vidModel === "agnes-video-2.5-flash") body.size = "720P";
+  else body.size = "1080P";
+
+  if (mode === "keyframe") {
+    if (opts.firstFrame) body.first_frame = opts.firstFrame;
+    if (opts.lastFrame) body.last_frame = opts.lastFrame;
+  }
+  if (mode === "reference" && opts.images && opts.images.length) {
+    body.images = opts.images; // 参考图数组，Flash 最多 5 张
+  }
+  return body;
+}
+
+async function pollVideo(videoId, modelName, signal) {
+  const path = "/agnesapi?video_id=" + encodeURIComponent(videoId) + "&model_name=" + encodeURIComponent(modelName);
+  while (!signal.aborted) {
+    const data = await apiFetch(path, null, true);
+    const status = data?.status || data?.state;
+    if (status === "completed") {
+      const url = data?.url || data?.video_url || data?.data?.url;
+      if (!url) throw new Error("视频任务完成但响应缺少 url 字段");
+      return url;
+    }
+    if (status === "failed") {
+      const err = data?.error?.message || data?.failure_reason || "视频任务失败";
+      const e = new Error(err);
+      e.kind = "task_failed";
+      throw e;
+    }
+    // queued / in_progress → 继续轮询（查询不消耗 RPM）
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+  }
+  throw new Error("已取消");
+}
+
+async function generateVideo({ prompt, ratio, seconds, mode, opts }) {
+  const body = buildVideoBody(prompt, ratio, seconds, mode, opts);
+  const data = await apiFetch("/videos", body);
+  const videoId = data?.video_id || data?.id || data?.task_id;
+  if (!videoId) throw new Error("视频创建响应缺少 video_id");
+  const controller = new AbortController();
+  S._vidAbort = controller;
+  const url = await pollVideo(videoId, S.vidModel, controller.signal);
+  addResultItem("video", S.vidModel, ratio + " · " + seconds + "s", url);
+  return url;
+}
+
+/* ============================ 自动重试（按 RPM 档位自适应） ============================ */
+/* 各档位的失败重提间隔（毫秒）：对齐该档位 RPM 的 1 个窗口，避免连发打穿 */
+const RETRY_DELAY_MS = {
+  "1K": 3000,   // 图片 1K：20 RPM
+  "2K": 6000,   // 图片 2K：10 RPM
+  "3K": 60000,  // 图片 3K：1 RPM
+  "4K": 60000,  // 图片 4K：1 RPM
+  video: 60000, // 视频：1 RPM
+};
+
+/* 判断错误是否属于"速率限制/配额"类（必须停止自动重试，等用户手动再发） */
+function isRateLimit(e) {
+  if (e?.status === 429) return true;
+  const msg = String(e?.message || "").toLowerCase();
+  const data = e?.data ? JSON.stringify(e.data).toLowerCase() : "";
+  const hay = msg + " " + data;
+  return /rate.?limit|too many requests|速率限制|频率限制|限流|429|limit/.test(hay);
+}
+
+/* 根据当前任务档位算出"失败重提间隔"和"限流后建议手动等待时长" */
+function retryDelayOf() {
+  if (S.mode === "t2v" || S.mode === "i2v") {
+    return { delay: RETRY_DELAY_MS.video, hint: 60 }; // 视频 1 RPM → 等 60s
+  }
+  const d = RETRY_DELAY_MS[S.size] ?? 60000;
+  return { delay: d, hint: Math.max(1, Math.round(d / 1000)) };
+}
+
+async function runWithRetry(taskFn) {
+  S.running = true;
+  S.cancelled = false;
+  S.retryCount = 0;
+  const { delay, hint } = retryDelayOf();
+  $("stopWrap").classList.remove("hidden");
+  $("genBtn").disabled = true;
+  try {
+    while (!S.cancelled) {
+      S.retryCount++;
+      const n = S.retryCount;
+      setStatus(
+        (n > 1 ? `<span class="retry-badge">第 ${n} 次重试</span>` : "生成中…") +
+        ` · ${describeTask()}`,
+        "running"
+      );
+      try {
+        await taskFn(n);
+        setStatus("生成完成 ✓（第 " + n + " 次成功）", "ok");
+        return;
+      } catch (e) {
+        // 用户取消：直接停
+        if (S.cancelled) { setStatus("已手动停止", "err"); return; }
+        console.warn("[retry]", e.message, e.data || "");
+
+        if (isRateLimit(e)) {
+          // 限流 429：不自动重提（连发只会打穿 RPM），停下来等用户手动再发
+          setStatus(
+            `<span class="retry-badge">第 ${n} 次</span> 触发限流（429）。已停止自动重试。` +
+            ` 等约 ${hint}s 后手动点"生成"再试。`,
+            "err"
+          );
+          S.running = false;
+          $("genBtn").disabled = false;
+          $("stopWrap").classList.add("hidden");
+          return;
+        }
+
+        // 普通失败（任务 failed / 5xx / 网络错）：按档位间隔自动重提
+        setStatus(
+          `第 ${n} 次失败：${e.message} — ${Math.round(delay / 1000)}s 后自动重提（RPM 档位间隔）…`,
+          "err"
+        );
+        const t0 = Date.now();
+        while (Date.now() - t0 < delay) {
+          if (S.cancelled) { setStatus("已手动停止", "err"); return; }
+          await sleep(500);
+        }
+        // 继续 while 循环重试
+      }
+    }
+  } finally {
+    if (S.running) {
+      S.running = false;
+      $("genBtn").disabled = false;
+      $("stopWrap").classList.add("hidden");
+    }
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function describeTask() {
+  const p = $("prompt").value || "(未填提示词)";
+  return p.length > 24 ? p.slice(0, 24) + "…" : p;
+}
+
+/* ============================ 参数面板渲染 ============================ */
+function renderParams() {
+  const wrap = $("paramBlock");
+  wrap.innerHTML = "";
+  const isImg = S.mode === "t2i" || S.mode === "i2i";
+
+  // 模型选择
+  wrap.appendChild(makeModelSelect(isImg ? "imgModel" : "vidModel", isImg ? IMG_MODELS : VIDEO_MODELS));
+
+  // 宽高比
+  const ratios = isImg ? RATIO_T2I : RATIO_VIDEO;
+  wrap.appendChild(makeSelect("ratio", "宽高比", ratios, S.ratio));
+
+  // 图像尺寸 / 视频时长
+  if (isImg) {
+    wrap.appendChild(makeSelect("size", "输出尺寸", SIZE_T2I, S.size));
+  } else {
+    wrap.appendChild(makeSelect("seconds", "视频时长（秒）", SECONDS_OPTIONS, S.seconds));
+  }
+
+  // 参考图
+  if (S.mode === "i2i") {
+    wrap.appendChild(makeImageUpload("refImages", "参考图（最多 4 张，多选）", 4));
+  }
+  if (S.mode === "i2v") {
+    // 图生视频：首尾帧控制（keyframe）或多图参考（reference）
+    S._vidmode = S._vidmode || "keyframe";
+    wrap.appendChild(el("div", {}, [
+      el("label", {}, "生成方式"),
+      makeVideoModeSelect(),
+    ]));
+    renderI2vUploads();
+  }
+
+  // 模式说明
+  const note = el("div", { class: "hint" });
+  note.textContent = modeNote();
+  wrap.appendChild(note);
+}
+
+function modeNote() {
+  switch (S.mode) {
+    case "t2i": return "纯文本描述生成图片。size 为 1K/2K/3K/4K 档位，ratio 为宽高比。";
+    case "i2i": return "上传参考图 + 提示词，对图片做编辑/风格转换/合成。";
+    case "t2v": return "纯文本描述生成视频。Flash 版固定 720P，时长 4–12 秒。";
+    case "i2v": return "基于图片生成视频。支持首尾帧控制（keyframe）或多图参考（reference）。";
+  }
+}
+
+function makeModelSelect(field, models) {
+  const sel = el("select", { id: "sel_" + field });
+  models.forEach(m => sel.appendChild(el("option", { value: m.id }, m.label)));
+  sel.value = S[field];
+  sel.onchange = () => { S[field] = sel.value; };
+  return el("div", {}, [
+    el("label", {}, field === "imgModel" ? "图像模型" : "视频模型"),
+    sel,
+  ]);
+}
+
+function makeSelect(field, label, options, current) {
+  const sel = el("select", { id: "sel_" + field });
+  options.forEach(o => sel.appendChild(el("option", { value: o }, o)));
+  sel.value = current;
+  sel.onchange = () => { S[field] = sel.value; };
+  return el("div", {}, [ el("label", {}, label), sel ]);
+}
+
+function makeVideoModeSelect() {
+  const sel = el("select", { id: "sel_vidmode" });
+  sel.appendChild(el("option", { value: "keyframe" }, "首尾帧控制（keyframe）"));
+  sel.appendChild(el("option", { value: "reference" }, "多图参考（reference）"));
+  sel.value = S._vidmode;
+  sel.onchange = () => { S._vidmode = sel.value; renderI2vUploads(); };
+  return sel;
+}
+
+function makeImageUpload(field, label, max) {
+  const box = el("div");
+  box.append(el("label", {}, label));
+  const drop = el("div", { class: "drop" }, "点击或拖拽上传图片（最多 " + max + " 张）");
+  drop.onclick = () => openFilePicker(field, max);
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("drag"); };
+  drop.ondragleave = () => drop.classList.remove("drag");
+  drop.ondrop = async (e) => {
+    e.preventDefault(); drop.classList.remove("drag");
+    await handleFiles(field, e.dataTransfer.files, max);
+  };
+  const thumbs = el("div", { class: "thumbs", id: "thumbs_" + field });
+  box.append(drop, thumbs);
+  S[field] = S[field] || [];
+  renderThumbs(field);
+  return box;
+}
+
+function openFilePicker(field, max) {
+  const inp = $("fileInput");
+  inp._field = field; inp._max = max;
+  inp.multiple = true;
+  inp.click();
+}
+
+$("fileInput").onchange = async (e) => {
+  const f = e.target.files;
+  if (f.length) await handleFiles(e.target._field, f, e.target._max);
+  e.target.value = "";
+};
+
+async function handleFiles(field, files, max) {
+  const single = (field === "firstFrame" || field === "lastFrame");
+  if (single) {
+    // 单槽位：只取第一张，存成单个 {b64,name}
+    const f = files[0];
+    if (!f) return;
+    S[field] = { file: f, b64: await fileToB64(f), name: f.name };
+    renderSingleSlot(field);
+  } else {
+    const arr = S[field] = S[field] || [];
+    for (const f of files) {
+      if (arr.length >= max) break;
+      arr.push({ file: f, b64: await fileToB64(f), name: f.name });
+    }
+    renderThumbs(field);
+  }
+}
+
+function renderThumbs(field) {
+  const box = $("thumbs_" + field);
+  if (!box) return;
+  box.innerHTML = "";
+  (S[field] || []).forEach((it, i) => {
+    const t = el("div", { class: "thumb" });
+    t.appendChild(el("img", { src: it.b64, alt: it.name }));
+    const rm = el("button", {}, "×");
+    rm.onclick = () => { S[field].splice(i, 1); renderThumbs(field); };
+    t.appendChild(rm);
+    box.appendChild(t);
+  });
+}
+
+function renderSingleSlot(field) {
+  const box = $("slot_" + field);
+  if (!box) return;
+  const it = S[field];
+  box.innerHTML = "";
+  if (!it) {
+    box.appendChild(el("div", { class: "drop" }, "未选择图片"));
+    return;
+  }
+  const t = el("div", { class: "thumb", style: "width:90px;height:90px" });
+  t.appendChild(el("img", { src: it.b64, alt: it.name }));
+  const rm = el("button", {}, "×");
+  rm.onclick = () => { S[field] = null; renderSingleSlot(field); };
+  t.appendChild(rm);
+  box.appendChild(t);
+}
+
+function renderI2vUploads() {
+  let box = $("i2vBox");
+  if (box) box.remove();
+  box = el("div", { id: "i2vBox" });
+
+  if (S._vidmode === "keyframe") {
+    box.append(
+      makeSlotUpload("firstFrame", "首帧（可选）"),
+      makeSlotUpload("lastFrame", "尾帧（可选）"),
+    );
+  } else {
+    box.append(
+      el("label", {}, "参考图（最多 5 张）"),
+    );
+    const drop = el("div", { class: "drop", style: "cursor:pointer" }, "点击或拖拽上传参考图");
+    drop.onclick = () => openFilePicker("refImagesVid", 5);
+    drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("drag"); };
+    drop.ondragleave = () => drop.classList.remove("drag");
+    drop.ondrop = async (e) => { e.preventDefault(); drop.classList.remove("drag"); await handleFiles("refImagesVid", e.dataTransfer.files, 5); };
+    box.appendChild(drop);
+    box.appendChild(el("div", { class: "thumbs", id: "thumbs_refImagesVid" }));
+    S.refImagesVid = S.refImagesVid || [];
+    renderThumbs("refImagesVid");
+  }
+
+  const wrap = $("paramBlock");
+  wrap.appendChild(box);
+}
+
+function makeSlotUpload(field, label) {
+  S[field] = S[field] || null;
+  const box = el("div");
+  box.appendChild(el("label", {}, label));
+  const drop = el("div", { class: "drop", style: "cursor:pointer", id: "drop_" + field }, "点击上传图片");
+  drop.onclick = () => openFilePicker(field, 1);
+  box.appendChild(drop);
+  box.appendChild(el("div", { id: "slot_" + field }));
+  renderSingleSlot(field);
+  return box;
+}
+
+/* ============================ 事件绑定 ============================ */
+function bindEvents() {
+  $("modeTabs").querySelectorAll(".tab").forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll("#modeTabs .tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      S.mode = t.dataset.mode;
+      S.ratio = S.mode.startsWith("i") && S.mode !== "i2v" ? "1:1" : (S.mode === "t2v" ? "16:9" : S.ratio);
+      if (S.mode === "t2v") S.ratio = "16:9";
+      renderParams();
+    };
+  });
+
+  $("genBtn").onclick = async () => {
+    const prompt = $("prompt").value.trim();
+    // 文生图 / 文生视频必须填提示词；图生图 / 图生视频 可用参考图驱动（提示词可选）
+    const needPrompt = (S.mode === "t2i" || S.mode === "t2v");
+    if (needPrompt && !prompt) {
+      setStatus("请先填写提示词", "err"); return;
+    }
+    if (S.mode === "i2i" && !(S.refImages || []).length) {
+      setStatus("图生图需要至少上传 1 张参考图", "err"); return;
+    }
+    const useOpt = $("useOptimize").checked;
+    const finalPrompt = useOpt ? await optimizePrompt(prompt || "按参考图风格生成") : (prompt || "");
+
+    let task;
+    if (S.mode === "t2i") {
+      task = () => generateImage({ mode: "t2i", prompt: finalPrompt, ratio: S.ratio, size: S.size, refImages: [] });
+    } else if (S.mode === "i2i") {
+      task = () => generateImage({ mode: "i2i", prompt: finalPrompt, ratio: S.ratio, size: S.size,
+        refImages: (S.refImages || []).map(x => x.b64) });
+    } else if (S.mode === "t2v") {
+      task = () => generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "text", opts: {} });
+    } else if (S.mode === "i2v") {
+      task = () => {
+        if (S._vidmode === "keyframe") {
+          return generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "keyframe",
+            opts: { firstFrame: S.firstFrame?.b64, lastFrame: S.lastFrame?.b64 } });
+        } else {
+          return generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "reference",
+            opts: { images: (S.refImagesVid || []).map(x => x.b64) } });
+        }
+      };
+    }
+    clearResults();
+    await runWithRetry(task);
+  };
+
+  $("stopBtn").onclick = () => {
+    S.cancelled = true;
+    if (S._vidAbort) S._vidAbort.abort();
+  };
+
+  // API key
+  const keyInput = $("apiKey");
+  keyInput.value = localStorage.getItem("agnes_api_key") || "";
+  keyInput.oninput = getKey;
+  keyInput.onchange = getKey;
+  getKey();
+
+  $("keyToggle").onclick = () => {
+    const inp = $("apiKey");
+    inp.type = inp.type === "password" ? "text" : "password";
+    $("keyToggle").textContent = inp.type === "password" ? "隐藏" : "显示";
+  };
+}
+
+init();
+function init() {
+  renderParams();
+  bindEvents();
+}
+</script>
+</body>
+</html>
