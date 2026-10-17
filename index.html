@@ -108,9 +108,10 @@
   }
   .result-item .media { width: 100%; aspect-ratio: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; }
   .result-item .media img, .result-item .media video { width: 100%; height: 100%; object-fit: contain; }
-  .result-item .meta { padding: 8px 10px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
-  .result-item .meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .result-item .meta { padding: 8px 10px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .result-item .meta a { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
   .result-item .meta a:hover { text-decoration: underline; }
+  .result-item .meta .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; text-align: right; }
 
   .status {
     padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
@@ -133,6 +134,94 @@
   details summary { cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
   details[open] summary { color: var(--accent); }
   .adv { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; }
+
+  /* 历史记录 */
+  .hist-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+  .hist-item {
+    display: flex; gap: 10px; padding: 8px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 8px; align-items: center;
+    max-width: 100%; overflow: hidden;
+  }
+  .hist-item .hmedia { width: 56px; height: 56px; border-radius: 6px; overflow: hidden; background: #000; flex-shrink: 0; }
+  .hist-item .hmedia img, .hist-item .hmedia video { width: 100%; height: 100%; object-fit: cover; }
+  .hist-item .hmeta { flex: 1; min-width: 0; font-size: 11px; color: var(--muted); line-height: 1.5; overflow: hidden; }
+  .hist-item .hmeta .htitle { color: var(--text); font-weight: 600; font-size: 12px; }
+  .hist-item .hmeta .hprompt {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; line-height: 1.4;
+    /* 渐隐：2 行内显示，超出做 mask 渐隐，hover 时显示完整（tooltip） */
+    position: relative;
+  }
+  .hist-item .hmeta .hprompt::after {
+    content: ""; display: block;
+  }
+  .hist-item .hmeta .htime { color: var(--muted); font-size: 10px; }
+  .hist-item .hacts { display: flex; gap: 4px; flex-shrink: 0; }
+  .hist-item .hacts a, .hist-item .hacts button {
+    background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+    padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 11px; text-decoration: none;
+  }
+  .hist-item .hacts a:hover, .hist-item .hacts button:hover { color: var(--text); border-color: var(--accent); }
+  .hist-empty { color: var(--muted); text-align: center; padding: 20px; font-size: 12px; }
+  /* 参考图缩略（历史项内）— 保留样式备用 */
+  .hist-item .hrefs { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .hist-item .hrefs img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+  .hist-item .hrefs .hmore { font-size: 10px; color: var(--muted); text-align: center; }
+  .hist-item .harrow { color: var(--muted); font-size: 16px; flex-shrink: 0; align-self: center; }
+  /* 预览模态里参考图区 */
+  .pref-refs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pref-refs img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; }
+  .pref-refs img:hover { border-color: var(--accent); }
+  /* 预览模态里模型名小字（已移除，保留备用） */
+  .preview-side .pmode-sub { font-size: 11px; color: var(--muted); margin-top: -6px; display: none; }
+  /* 参考图放大态 */
+  .preview-overlay.ref-zooming .preview-side { display: none; }
+  .preview-overlay.ref-zooming .preview-img { flex: 1; }
+  .preview-overlay.ref-zooming .preview-img .ref-zoom-img { max-width: 100%; max-height: 100%; cursor: zoom-out; }
+  .preview-overlay.ref-zooming .preview-close { top: 14px; right: 14px; background: rgba(0,0,0,.7); }
+
+  /* 预览模态 */
+  .preview-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100;
+    display: flex; align-items: stretch; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  .preview-overlay.open { opacity: 1; pointer-events: auto; }
+  .preview-box {
+    display: flex; width: min(1100px, 94vw); height: min(720px, 90vh);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .preview-img { flex: 1.2; background: #000; display: flex; align-items: center; justify-content: center; position: relative; min-width: 0; }
+  .preview-img img, .preview-img video { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .preview-side {
+    flex: 1; min-width: 260px; max-width: 380px; padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    border-left: 1px solid var(--border); overflow-y: auto;
+  }
+  .preview-side h3 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+  .preview-side .pprompt {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 13px; line-height: 1.7; color: var(--text);
+    white-space: pre-wrap; word-break: break-word; flex: 1; overflow-y: auto;
+  }
+  .preview-side .prow { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .preview-side .prow b { color: var(--text); font-weight: 600; }
+  .preview-close {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    background: rgba(0,0,0,.5); border: 1px solid var(--border); color: #fff;
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px;
+  }
+  .preview-side .pbtns { display: flex; justify-content: center; }
+  .preview-side .pbtns a, .preview-side .pbtns button {
+    flex: 1; max-width: 220px; text-align: center; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    text-decoration: none; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  }
+  .preview-side .pbtns a:hover { border-color: var(--accent); }
+  @media (max-width: 720px) {
+    .preview-box { flex-direction: column; width: 96vw; height: 92vh; }
+    .preview-side { max-width: none; min-width: 0; border-left: none; border-top: 1px solid var(--border); }
+  }
 </style>
 </head>
 <body>
@@ -188,8 +277,26 @@
         <div class="empty" style="width:100%">生成结果会显示在这里</div>
       </div>
     </div>
+
+    <!-- 历史卡片 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h2 style="margin:0">历史记录</h2>
+        <button id="clearHist" style="background:var(--panel-2);border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px">清空全部</button>
+      </div>
+      <div id="histList" class="hist-list"></div>
+    </div>
   </div>
 </main>
+
+<!-- 预览模态 -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-box">
+    <div class="preview-img"></div>
+    <div class="preview-side"></div>
+    <button class="preview-close" id="previewClose">✕</button>
+  </div>
+</div>
 
 <input type="file" id="fileInput" accept="image/*" multiple hidden />
 
@@ -255,6 +362,168 @@ const el = (tag, attrs = {}, ...rest) => {
   return n;
 };
 
+/* ============================ 历史记录 ============================ */
+const HIST_KEY = "agnes_factory_history";
+const HIST_MAX = 20;
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; }
+}
+function saveHistory(list) {
+  // 允许直接传 list；不传则读已有
+  const data = list !== undefined ? list : loadHistory();
+  try {
+    localStorage.setItem(HIST_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn("[history] localStorage 写入失败：", e);
+    alert("历史记录保存失败（localStorage 可能不可用，如隐私模式或容量满）：" + e.message);
+  }
+}
+function addHistory(entry) {
+  const list = loadHistory();
+  entry.id = Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+  entry.ts = Date.now();
+  list.unshift(entry);
+  if (list.length > HIST_MAX) list.length = HIST_MAX;
+  saveHistory(list); // 显式传入含新条目的 list
+  renderHistory();
+}
+function deleteHistory(id) {
+  const list = loadHistory().filter(x => x.id !== id);
+  localStorage.setItem(HIST_KEY, JSON.stringify(list));
+  renderHistory();
+}
+function clearHistory() {
+  localStorage.removeItem(HIST_KEY);
+  renderHistory();
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function renderHistory() {
+  const list = loadHistory();
+  const box = $("histList");
+  box.innerHTML = "";
+  if (!list.length) {
+    box.appendChild(el("div", { class: "hist-empty" }, "暂无历史记录"));
+    return;
+  }
+  list.forEach(item => {
+    const node = el("div", { class: "hist-item" });
+    // 左侧只显示生成结果（不再显示参考图，参考图在预览模态里看）
+    const media = el("div", { class: "hmedia" });
+    if (item.media === "video") media.appendChild(el("video", { src: item.url, muted: "muted" }));
+    else media.appendChild(el("img", { src: item.url, alt: "" }));
+    const meta = el("div", { class: "hmeta" });
+    // 标题 = 模式名；旧数据无 modeLabel 时显示原始 media 值（图片/视频），不做翻译
+    const modeLabel = item.modeLabel || item.media;
+    meta.appendChild(el("div", { class: "htitle" }, modeLabel));
+    if (item.prompt) {
+      const p = el("div", { class: "hprompt", title: item.prompt }, item.prompt);
+      meta.appendChild(p);
+    }
+    // 模型名缩小，放到时间/参数后面
+    meta.appendChild(el("div", { class: "htime" }, fmtTime(item.ts) + " · " + (item.sub || "") + (item.title ? " · " + item.title : "")));
+    const acts = el("div", { class: "hacts" });
+    if (item.url) {
+      const pv = el("button", {}, "预览");
+      pv.onclick = () => openPreview(item.media, item.url, item.title, item.sub, item.prompt, item.refThumbs, item.modeLabel);
+      acts.appendChild(pv);
+    }
+    const rm = el("button", {}, "删除");
+    rm.onclick = () => deleteHistory(item.id);
+    acts.appendChild(rm);
+    node.append(media, meta, acts);
+    box.appendChild(node);
+  });
+}
+
+/* ============================ 预览模态 ============================ */
+let _previewCtx = null; // 保存预览上下文，放大参考图后恢复用
+function openPreview(media, url, title, sub, prompt, refThumbs, modeLabel) {
+  _previewCtx = { media, url, title, sub, prompt, refThumbs, modeLabel };
+  const ov = $("previewOverlay");
+  // 关键：清除放大态，否则 CSS 会隐藏右侧信息栏（即"图3"状态）
+  ov.classList.remove("ref-zooming");
+  const imgBox = ov.querySelector(".preview-img");
+  imgBox.innerHTML = "";
+  if (media === "video") imgBox.appendChild(el("video", { src: url, controls: "controls", autoplay: "autoplay", loop: "loop" }));
+  else imgBox.appendChild(el("img", { src: url, alt: modeLabel || title || "" }));
+
+  const side = ov.querySelector(".preview-side");
+  side.innerHTML = "";
+  // 模式名 + 模型名
+  if (modeLabel) side.appendChild(el("h3", {}, modeLabel));
+  // 参考图区（仅在有参考图时显示），点击可放大
+  if (refThumbs && refThumbs.length) {
+    side.appendChild(el("h3", {}, "参考图（" + refThumbs.length + "）"));
+    const refs = el("div", { class: "pref-refs" });
+    refThumbs.forEach(t => {
+      const img = el("img", { src: t.url, alt: t.label || "ref" });
+      img.title = (t.label || "参考图") + "（点击放大）";
+      img.onclick = () => zoomRefImage(t.url, t.label);
+      refs.appendChild(img);
+    });
+    side.appendChild(refs);
+  }
+  side.appendChild(el("h3", {}, "提示词"));
+  side.appendChild(el("div", { class: "pprompt" }, prompt || "(未填写)"));
+  side.appendChild(el("div", { class: "prow" }, [
+    el("span", {}, "模型"),
+    el("b", {}, title || media),
+  ]));
+  if (sub) side.appendChild(el("div", { class: "prow" }, [
+    el("span", {}, "参数"),
+    el("b", {}, sub),
+  ]));
+  // 只保留"复制提示词"一个按钮（外链下载对跨域 URL 无效，已移除）
+  const pbtns = el("div", { class: "pbtns" });
+  const copy = el("button", {}, "复制提示词");
+  copy.onclick = () => {
+    navigator.clipboard.writeText(prompt || "").then(
+      () => { copy.textContent = "已复制 ✓"; setTimeout(() => copy.textContent = "复制提示词", 1500); },
+      () => { copy.textContent = "复制失败"; }
+    );
+  };
+  pbtns.appendChild(copy);
+  side.appendChild(pbtns);
+
+  ov.classList.add("open");
+}
+
+function closePreview() {
+  const ov = $("previewOverlay");
+  ov.classList.remove("open");
+  ov.classList.remove("ref-zooming");
+  // 停止视频播放
+  ov.querySelectorAll("video").forEach(v => { try { v.pause(); } catch {} });
+}
+
+/* 放大预览模态里的参考图：左侧铺满参考图，加"返回预览"按钮点回原预览 */
+function zoomRefImage(url, label) {
+  const ov = $("previewOverlay");
+  const imgBox = ov.querySelector(".preview-img");
+  imgBox.innerHTML = "";
+  const img = el("img", { src: url, alt: label || "参考图" });
+  img.className = "ref-zoom-img";
+  imgBox.appendChild(img);
+  // 点放大的参考图本身，也返回预览（和按钮双保险）
+  img.onclick = () => {
+    if (_previewCtx) openPreview(_previewCtx.media, _previewCtx.url, _previewCtx.title, _previewCtx.sub, _previewCtx.prompt, _previewCtx.refThumbs, _previewCtx.modeLabel);
+  };
+
+  // 明确的"返回预览"按钮（悬浮在放大图上）
+  const back = el("button", { class: "ref-zoom-back" }, "← 返回预览");
+  back.style.cssText = "position:absolute;bottom:14px;left:14px;z-index:3;background:rgba(0,0,0,.7);color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px";
+  back.onclick = () => {
+    if (_previewCtx) openPreview(_previewCtx.media, _previewCtx.url, _previewCtx.title, _previewCtx.sub, _previewCtx.prompt, _previewCtx.refThumbs, _previewCtx.modeLabel);
+  };
+  imgBox.appendChild(back);
+
+  ov.classList.add("ref-zooming");
+}
+
 function getKey() {
   const k = $("apiKey").value.trim() || localStorage.getItem("agnes_api_key") || "";
   if (k) localStorage.setItem("agnes_api_key", k);
@@ -271,6 +540,44 @@ function fileToB64(file) {
   });
 }
 
+/* 把 dataURL(base64) 压成缩略图：最大宽 320px，JPEG 0.7，用于历史回看，省 localStorage */
+function makeThumbDataUrl(b64, maxW = 320) {
+  return new Promise((resolve) => {
+    if (!b64 || !b64.startsWith("data:")) return resolve(null);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = () => resolve(null);
+    img.src = b64;
+  });
+}
+
+/* 从各种上传字段提取参考图缩略（异步），供历史条目使用 */
+async function collectRefThumbs(mode, opts) {
+  const thumbs = [];
+  const push = async (label, b64) => {
+    if (b64) { const t = await makeThumbDataUrl(b64); if (t) thumbs.push({ label, url: t }); }
+  };
+  if (mode === "i2i") {
+    for (const it of (opts.refImagesFull || [])) await push("参考", it.b64);
+  } else if (mode === "i2v") {
+    if (opts.vidMode === "keyframe") {
+      await push("首帧", opts.firstFrameFull);
+      await push("尾帧", opts.lastFrameFull);
+    } else {
+      for (const it of (opts.refImagesVidFull || [])) await push("参考", it.b64);
+    }
+  }
+  return thumbs;
+}
+
 function setStatus(msg, cls = "") {
   const s = $("status");
   s.className = "status " + cls;
@@ -283,7 +590,7 @@ function clearResults() {
   g.innerHTML = "";
 }
 
-function addResultItem(media, title, sub, url) {
+function addResultItem(media, title, sub, url, prompt) {
   const g = $("resultGrid");
   const empty = g.querySelector(".empty");
   if (empty) empty.remove();
@@ -292,11 +599,11 @@ function addResultItem(media, title, sub, url) {
   if (media === "image") m.appendChild(el("img", { src: url, alt: title }));
   else m.appendChild(el("video", { src: url, controls: "controls", loop: "loop" }));
   const meta = el("div", { class: "meta" });
-  meta.appendChild(el("span", {}, title));
-  if (url) meta.appendChild(Object.assign(el("a", {}, "下载"), { href: url, target: "_blank", download: "" }));
-  if (sub) {
-    meta.appendChild(el("span", { class: "sub", style: "color:var(--muted)" }, sub));
-  }
+  meta.appendChild(el("span", { class: "sub", title: title + " · " + (sub || "") }, title));
+  const pv = el("a", { class: "preview-link" }, "预览");
+  pv.onclick = () => openPreview(media, url, title, sub, prompt);
+  meta.appendChild(pv);
+  if (sub) meta.appendChild(el("span", { class: "sub" }, sub));
   item.append(m, meta);
   g.prepend(item);
 }
@@ -359,15 +666,18 @@ function buildImageBody(mode, prompt, ratio, size, refImages) {
   return body;
 }
 
-async function generateImage({ mode, prompt, ratio, size, refImages }) {
+async function generateImage({ mode, prompt, ratio, size, refImages, refImagesFull }) {
   const body = buildImageBody(mode, prompt, ratio, size, refImages);
   const data = await apiFetch("/images/generations", body);
   const item = data?.data?.[0];
   if (!item) throw new Error("图像响应缺少 data[0]");
   const url = item.url || (item.b64_json ? "data:image/png;base64," + item.b64_json : null);
   if (!url) throw new Error("图像响应缺少 url / b64_json");
-  addResultItem("image", S.imgModel, "ratio " + ratio + " · " + size, url);
+  addResultItem("image", S.imgModel, "ratio " + ratio + " · " + size, url, prompt);
   if (item.revised_prompt) console.log("revised_prompt:", item.revised_prompt);
+  const refThumbs = await collectRefThumbs(mode, { refImagesFull });
+  const modeLabel = mode === "i2i" ? "图生图" : "文生图";
+  addHistory({ media: "image", url, title: S.imgModel, sub: "ratio " + ratio + " · " + size, prompt, refThumbs, modeLabel });
   return url;
 }
 
@@ -424,7 +734,13 @@ async function generateVideo({ prompt, ratio, seconds, mode, opts }) {
   const controller = new AbortController();
   S._vidAbort = controller;
   const url = await pollVideo(videoId, S.vidModel, controller.signal);
-  addResultItem("video", S.vidModel, ratio + " · " + seconds + "s", url);
+  addResultItem("video", S.vidModel, ratio + " · " + seconds + "s", url, prompt);
+  const refThumbs = await collectRefThumbs("i2v", opts);
+  let modeLabel;
+  if (mode === "text") modeLabel = "文生视频";
+  else if (opts && opts.vidMode === "keyframe") modeLabel = "图生视频（首尾帧）";
+  else modeLabel = "图生视频（多图参考）";
+  addHistory({ media: "video", url, title: S.vidModel, sub: ratio + " · " + seconds + "s", prompt, refThumbs, modeLabel });
   return url;
 }
 
@@ -752,17 +1068,19 @@ function bindEvents() {
       task = () => generateImage({ mode: "t2i", prompt: finalPrompt, ratio: S.ratio, size: S.size, refImages: [] });
     } else if (S.mode === "i2i") {
       task = () => generateImage({ mode: "i2i", prompt: finalPrompt, ratio: S.ratio, size: S.size,
-        refImages: (S.refImages || []).map(x => x.b64) });
+        refImages: (S.refImages || []).map(x => x.b64), refImagesFull: (S.refImages || []).map(x => ({ b64: x.b64, name: x.name })) });
     } else if (S.mode === "t2v") {
       task = () => generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "text", opts: {} });
     } else if (S.mode === "i2v") {
       task = () => {
         if (S._vidmode === "keyframe") {
           return generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "keyframe",
-            opts: { firstFrame: S.firstFrame?.b64, lastFrame: S.lastFrame?.b64 } });
+            opts: { firstFrame: S.firstFrame?.b64, lastFrame: S.lastFrame?.b64,
+                    firstFrameFull: S.firstFrame?.b64, lastFrameFull: S.lastFrame?.b64, vidMode: "keyframe" } });
         } else {
           return generateVideo({ prompt: finalPrompt, ratio: S.ratio, seconds: S.seconds, mode: "reference",
-            opts: { images: (S.refImagesVid || []).map(x => x.b64) } });
+            opts: { images: (S.refImagesVid || []).map(x => x.b64),
+                    refImagesVidFull: (S.refImagesVid || []).map(x => ({ b64: x.b64, name: x.name })), vidMode: "reference" } });
         }
       };
     }
@@ -787,12 +1105,27 @@ function bindEvents() {
     inp.type = inp.type === "password" ? "text" : "password";
     $("keyToggle").textContent = inp.type === "password" ? "隐藏" : "显示";
   };
+
+  // 历史：一键清空
+  $("clearHist").onclick = () => {
+    if (loadHistory().length && confirm("确定清空全部 " + loadHistory().length + " 条历史记录？")) clearHistory();
+  };
+
+  // 预览模态：关闭按钮 + 点击遮罩 + ESC
+  $("previewClose").onclick = closePreview;
+  $("previewOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "previewOverlay") closePreview();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePreview();
+  });
 }
 
 init();
 function init() {
   renderParams();
   bindEvents();
+  renderHistory(); // 启动时加载已有历史
 }
 </script>
 </body>
